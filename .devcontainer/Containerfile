@@ -1,0 +1,27 @@
+FROM alpine:edge
+
+ARG USERNAME=dev
+ARG UID=1000
+ARG GID=$UID
+
+RUN apk add sudo
+
+RUN adduser -D -u $UID -g $GID $USERNAME \
+    && addgroup $USERNAME wheel \
+    && sed -i 's/# %wheel ALL=(ALL:ALL) NOPASSWD: ALL/%wheel ALL=(ALL:ALL) NOPASSWD: ALL/g' /etc/sudoers
+
+COPY lifecycle /tmp
+
+COPY extra-packages /tmp
+RUN apk add $(cat /tmp/extra-packages)
+
+COPY extra-setup /tmp
+RUN chmod o+x /tmp/extra-setup
+RUN . /tmp/extra-setup
+
+USER $USERNAME
+
+COPY user-setup /tmp
+RUN sudo chown $USERNAME:$USERNAME /tmp/user-setup
+RUN chmod o+x /tmp/user-setup 
+RUN . /tmp/user-setup
